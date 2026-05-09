@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-label="Latte">
+  <rect width="640" height="480" fill="#f4eee6"/>
+  <circle cx="320" cy="222" r="142" fill="#2f2018"/>
+  <circle cx="320" cy="222" r="118" fill="#d7a36f"/>
+  <path d="M210 222c44-58 176-58 220 0-37 38-183 38-220 0Z" fill="#f8ead8"/>
+  <path d="M251 208c30-28 108-28 138 0-25 20-113 20-138 0Z" fill="#fff7ec"/>
+  <rect x="208" y="314" width="224" height="36" rx="18" fill="#2f2018"/>
+  <text x="320" y="416" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#3d2a20">LATTE</text>
+</svg>

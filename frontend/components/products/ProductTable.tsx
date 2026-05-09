@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, Pencil } from "lucide-react";
+import { Archive, Coffee, Pencil } from "lucide-react";
 import { archiveProductAction } from "@backend/actions/products";
 import type { ProductWithCategory } from "@backend/services/product-service";
 
@@ -33,8 +33,19 @@ export function ProductTable({ products }: ProductTableProps) {
           {products.map((product) => (
             <tr key={product.id}>
               <td className="px-4 py-3">
-                <div className="font-medium text-stone-950">{product.name}</div>
-                {product.description ? <div className="text-xs text-stone-500">{product.description}</div> : null}
+                <div className="flex items-center gap-3">
+                  <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-emerald-50 text-emerald-800">
+                    {product.image_url ? (
+                      <img alt="" className="size-full object-cover" src={product.image_url} />
+                    ) : (
+                      <Coffee aria-hidden="true" size={22} />
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-medium text-stone-950">{product.name}</div>
+                    {product.description ? <div className="text-xs text-stone-500">{product.description}</div> : null}
+                  </div>
+                </div>
               </td>
               <td className="px-4 py-3 text-stone-600">{product.sku}</td>
               <td className="px-4 py-3 text-stone-600">{product.categories?.name ?? "-"}</td>
@@ -74,4 +85,3 @@ export function ProductTable({ products }: ProductTableProps) {
     </div>
   );
 }
-

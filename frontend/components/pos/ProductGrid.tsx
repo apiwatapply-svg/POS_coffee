@@ -116,8 +116,12 @@ export function ProductGrid({ products }: ProductGridProps) {
             onClick={() => selectProduct(product)}
             type="button"
           >
-            <div className="mb-3 flex aspect-[4/3] items-center justify-center rounded-md bg-emerald-50 text-emerald-800">
-              <Coffee aria-hidden="true" size={32} />
+            <div className="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-md bg-emerald-50 text-emerald-800">
+              {product.image_url ? (
+                <img alt="" className="size-full object-cover" src={product.image_url} />
+              ) : (
+                <Coffee aria-hidden="true" size={32} />
+              )}
             </div>
             <div className="space-y-1">
               <p className="font-semibold text-stone-950">{product.name}</p>
@@ -144,4 +148,3 @@ export function ProductGrid({ products }: ProductGridProps) {
     </section>
   );
 }
-

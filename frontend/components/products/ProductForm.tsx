@@ -16,6 +16,7 @@ type ProductFormValues = {
   sku: string;
   categoryId: string;
   description?: string;
+  imageUrl?: string;
   price: number;
   cost: number;
   isAvailable: boolean;
@@ -59,6 +60,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       sku: product?.sku ?? "",
       categoryId: product?.category_id ?? categories[0]?.id ?? "",
       description: product?.description ?? "",
+      imageUrl: product?.image_url ?? "",
       price: Number(product?.price ?? 0),
       cost: Number(product?.cost ?? 0),
       isAvailable: product?.is_available ?? true,
@@ -152,6 +154,17 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         />
       </label>
 
+      <label className="space-y-2">
+        <span className="text-sm font-medium text-stone-700">Product image URL</span>
+        <input
+          className="h-11 w-full rounded-md border border-stone-300 px-3"
+          placeholder="/products/latte.svg"
+          {...register("imageUrl")}
+          name="imageUrl"
+        />
+        {errors.imageUrl ? <span className="text-xs text-red-600">{errors.imageUrl.message}</span> : null}
+      </label>
+
       <div className="flex flex-wrap gap-5">
         <label className="inline-flex items-center gap-2 text-sm font-medium text-stone-700">
           <input className="size-4" type="checkbox" {...register("isAvailable")} name="isAvailable" />
@@ -167,4 +180,3 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     </form>
   );
 }
-

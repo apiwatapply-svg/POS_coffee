@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-label="Butter Croissant">
+  <rect width="640" height="480" fill="#f6efe4"/>
+  <path d="M168 280c25-88 100-142 170-112-40 30-74 74-91 129-31 1-57-5-79-17Z" fill="#d79035"/>
+  <path d="M246 304c19-91 90-151 162-131-31 45-45 94-42 145-44 13-84 8-120-14Z" fill="#f0b24f"/>
+  <path d="M365 318c-6-73 20-123 78-150 42 17 70 57 85 111-46 27-100 42-163 39Z" fill="#c97928"/>
+  <path d="M198 252c96 54 206 61 330 5" fill="none" stroke="#8f4f1f" stroke-width="16" stroke-linecap="round" opacity=".35"/>
+  <text x="320" y="416" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="700" fill="#8f4f1f">CROISSANT</text>
+</svg>

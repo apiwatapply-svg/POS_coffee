@@ -14,6 +14,7 @@ function productInputFromFormData(formData: FormData) {
     sku: String(formData.get("sku") ?? ""),
     categoryId: String(formData.get("categoryId") ?? ""),
     description: String(formData.get("description") ?? ""),
+    imageUrl: String(formData.get("imageUrl") ?? ""),
     price: Number(formData.get("price") ?? 0),
     cost: Number(formData.get("cost") ?? 0),
     isAvailable: formData.get("isAvailable") === "on",
@@ -52,4 +53,3 @@ export async function archiveProductAction(formData: FormData) {
   await archiveProduct(id);
   revalidatePath("/products");
 }
-

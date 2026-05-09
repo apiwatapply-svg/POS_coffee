@@ -15,12 +15,12 @@ insert into categories (id, name, description, sort_order) values
 ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'Tea', 'Tea and non-coffee beverages', 2),
 ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'Bakery', 'Bakery and small food items', 3);
 
-insert into products (id, category_id, sku, name, description, price, cost, sort_order)
+insert into products (id, category_id, sku, name, description, image_url, price, cost, sort_order)
 values
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'LATTE', 'Latte', 'Espresso with steamed milk', 85, 35, 1),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'AMERICANO', 'Americano', 'Espresso with water', 70, 25, 2),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'MATCHA-LATTE', 'Matcha Latte', 'Matcha with milk', 95, 40, 3),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'CROISSANT', 'Butter Croissant', 'Classic butter croissant', 65, 30, 1);
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'LATTE', 'Latte', 'Espresso with steamed milk', '/products/latte.svg', 85, 35, 1),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 'AMERICANO', 'Americano', 'Espresso with water', '/products/americano.svg', 70, 25, 2),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 'MATCHA-LATTE', 'Matcha Latte', 'Matcha with milk', '/products/matcha-latte.svg', 95, 40, 3),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 'CROISSANT', 'Butter Croissant', 'Classic butter croissant', '/products/butter-croissant.svg', 65, 30, 1);
 
 insert into modifier_groups (id, name, is_required, min_select, max_select, sort_order) values
 ('cccccccc-cccc-cccc-cccc-ccccccccccc1', 'Cup Size', 1, 1, 1, 1),

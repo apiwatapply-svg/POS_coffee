@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-label="Matcha Latte">
+  <rect width="640" height="480" fill="#eef3e6"/>
+  <circle cx="320" cy="222" r="142" fill="#355527"/>
+  <circle cx="320" cy="222" r="116" fill="#8fbf64"/>
+  <path d="M214 230c54-46 158-64 214-6-48 46-166 58-214 6Z" fill="#e9f5dc"/>
+  <path d="M276 202c29-18 71-18 98 0-26 16-70 18-98 0Z" fill="#fbfff4"/>
+  <rect x="210" y="314" width="220" height="36" rx="18" fill="#355527"/>
+  <text x="320" y="416" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#36572a">MATCHA</text>
+</svg>

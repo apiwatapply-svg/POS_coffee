@@ -171,11 +171,11 @@ export async function createProduct(input: unknown) {
     await query(
       `
         insert into products (
-          id, category_id, sku, name, description, price, cost,
+          id, category_id, sku, name, description, image_url, price, cost,
           is_available, track_stock, sort_order
         )
         values (
-          @id, @categoryId, @sku, @name, @description, @price, @cost,
+          @id, @categoryId, @sku, @name, @description, @imageUrl, @price, @cost,
           @isAvailable, @trackStock, @sortOrder
         )
       `,
@@ -185,6 +185,7 @@ export async function createProduct(input: unknown) {
         sku: parsed.sku,
         name: parsed.name,
         description: parsed.description || null,
+        imageUrl: parsed.imageUrl || null,
         price: parsed.price,
         cost: parsed.cost,
         isAvailable: parsed.isAvailable,
@@ -211,6 +212,7 @@ export async function updateProduct(id: string, input: unknown) {
           sku = @sku,
           name = @name,
           description = @description,
+          image_url = @imageUrl,
           price = @price,
           cost = @cost,
           is_available = @isAvailable,
@@ -225,6 +227,7 @@ export async function updateProduct(id: string, input: unknown) {
         sku: parsed.sku,
         name: parsed.name,
         description: parsed.description || null,
+        imageUrl: parsed.imageUrl || null,
         price: parsed.price,
         cost: parsed.cost,
         isAvailable: parsed.isAvailable,
