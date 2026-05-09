@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paymentMessages, validateCheckoutPayment } from "@/lib/validations/order";
+import { paymentMessages, validateCheckoutPayment } from "@backend/validations/order";
 
 describe("checkout payment validation", () => {
   it("rejects cash received below grand total", () => {

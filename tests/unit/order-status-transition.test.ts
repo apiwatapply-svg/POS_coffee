@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canUpdateOrderStatus } from "@/lib/services/order-service";
+import { canUpdateOrderStatus } from "@backend/services/order-service";
 
 describe("order status transitions", () => {
   it("allows the barista preparation flow", () => {

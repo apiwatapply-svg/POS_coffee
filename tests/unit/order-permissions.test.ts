@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canViewAllOrders } from "@/lib/services/order-service";
+import { canViewAllOrders } from "@backend/services/order-service";
 
 describe("order permissions", () => {
   it("allows admin and manager to view all orders", () => {

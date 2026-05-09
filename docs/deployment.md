@@ -3,8 +3,8 @@
 ## Microsoft SQL Server
 
 1. Create a SQL Server database, for example `pos_coffee`.
-2. Run `mssql/schema.sql`.
-3. Run `mssql/seed.sql` for starter categories, products, modifiers, store settings, and demo staff users.
+2. Run `database/mssql/schema.sql`.
+3. Run `database/mssql/seed.sql` for starter categories, products, modifiers, store settings, and demo staff users.
 4. Create a least-privilege SQL login for the application.
 5. Configure network access from the hosting provider to SQL Server.
 6. Configure backups and retention for production.
@@ -83,8 +83,8 @@ E2E behavior:
 - [ ] `npm.cmd run test` passes.
 - [ ] `npm.cmd run build` passes.
 - [ ] `npm.cmd run e2e` passes or skips only because SQL Server env vars are intentionally absent.
-- [ ] `mssql/schema.sql` is applied.
-- [ ] `mssql/seed.sql` is applied in non-production environments.
+- [ ] `database/mssql/schema.sql` is applied.
+- [ ] `database/mssql/seed.sql` is applied in non-production environments.
 - [ ] Production staff users have unique passwords.
 - [ ] Application SQL login uses least-privilege permissions.
 - [ ] SQL Server backups are configured.

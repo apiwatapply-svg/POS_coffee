@@ -49,10 +49,10 @@ Responsible for screens, layouts, forms, loading states, and error states.
 Primary folders:
 
 ```text
-app/
-components/
-hooks/
-stores/
+frontend/app/
+frontend/components/
+frontend/hooks/
+frontend/stores/
 ```
 
 Rules:
@@ -69,19 +69,19 @@ Responsible for use cases and business rules.
 Primary folders:
 
 ```text
-app/actions/
-lib/services/
-lib/calculations/
-lib/validations/
-lib/auth/
+backend/actions/
+backend/services/
+backend/calculations/
+backend/validations/
+backend/auth/
 ```
 
 Rules:
 
-- `app/actions/*` exposes server actions to UI components.
-- `lib/services/*` owns database calls and use-case orchestration.
-- `lib/calculations/pos.ts` owns pricing, VAT, service charge, discount, and change calculations.
-- `lib/auth/*` owns password verification and HTTP-only session cookies.
+- `backend/actions/*` exposes server actions to UI components.
+- `backend/services/*` owns database calls and use-case orchestration.
+- `backend/calculations/pos.ts` owns pricing, VAT, service charge, discount, and change calculations.
+- `backend/auth/*` owns password verification and HTTP-only session cookies.
 
 ### 3.3 Data Layer
 
@@ -90,10 +90,10 @@ Responsible for SQL Server connection pooling, transactions, schema, and seed da
 Primary folders:
 
 ```text
-lib/mssql/
-mssql/schema.sql
-mssql/seed.sql
-types/database.ts
+backend/mssql/
+database/mssql/schema.sql
+database/mssql/seed.sql
+shared/types/database.ts
 ```
 
 Rules:

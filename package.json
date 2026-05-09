@@ -6,9 +6,9 @@
     "doc": "docs"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "next dev frontend",
+    "build": "next build frontend",
+    "start": "next start frontend",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test"

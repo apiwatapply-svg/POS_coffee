@@ -72,8 +72,8 @@ MSSQL_POOL_MAX=10
 Run the SQL scripts in order:
 
 ```text
-mssql/schema.sql
-mssql/seed.sql
+database/mssql/schema.sql
+database/mssql/seed.sql
 ```
 
 Run the development server:
@@ -125,8 +125,8 @@ The Playwright checkout test is skipped automatically when SQL Server environmen
 - `docs/system_architecture.md` - system architecture, modules, ER diagram, and deployment shape
 - `docs/api_spec.md` - API and service contract reference
 - `docs/deployment.md` - deployment and verification checklist
-- `mssql/schema.sql` - SQL Server schema
-- `mssql/seed.sql` - starter data and demo staff users
+- `database/mssql/schema.sql` - SQL Server schema
+- `database/mssql/seed.sql` - starter data and demo staff users
 
 ## Current MVP Status
 

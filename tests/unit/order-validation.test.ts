@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutSchema } from "@/lib/validations/order";
+import { checkoutSchema } from "@backend/validations/order";
 
 describe("checkout validation", () => {
   it("rejects an empty cart", () => {

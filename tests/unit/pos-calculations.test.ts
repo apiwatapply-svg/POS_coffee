@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateChange, calculateItemTotal, calculateOrderTotals } from "@/lib/calculations/pos";
+import { calculateChange, calculateItemTotal, calculateOrderTotals } from "@backend/calculations/pos";
 
 describe("POS calculations", () => {
   it("calculates item total from base price, modifiers, and quantity", () => {

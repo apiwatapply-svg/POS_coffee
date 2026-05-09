@@ -12,15 +12,15 @@ The MVP uses Next.js Server Actions for application mutations and protected read
 Primary code locations:
 
 ```text
-app/actions/
-lib/services/
-lib/validations/
-lib/calculations/
-lib/auth/
-lib/mssql/
+backend/actions/
+backend/services/
+backend/validations/
+backend/calculations/
+backend/auth/
+backend/mssql/
 ```
 
-Public REST endpoints are not required for the MVP. If mobile apps, external ordering, or delivery integrations are added later, expose REST endpoints under `app/api/*` using the same service functions.
+Public REST endpoints are not required for the MVP. If mobile apps, external ordering, or delivery integrations are added later, expose REST endpoints under `frontend/app/api/*` using the same service functions.
 
 ## 2. Common Standards
 
@@ -69,7 +69,7 @@ type UserRole = "admin" | "manager" | "cashier" | "barista";
 
 ### 3.1 `loginAction`
 
-**Server Action:** `app/actions/auth.ts`  
+**Server Action:** `backend/actions/auth.ts`  
 **Data:** `profiles`, `staff_sessions`  
 **Allowed Roles:** Public  
 **Purpose:** Authenticate staff by email/password and redirect by role.
@@ -112,7 +112,7 @@ Redirect rules:
 
 ### 3.2 `sendPasswordResetAction`
 
-**Server Action:** `app/actions/auth.ts`  
+**Server Action:** `backend/actions/auth.ts`  
 **Allowed Roles:** Public  
 **Purpose:** Return a safe password reset message. The MVP expects administrator-managed password resets.
 
@@ -120,7 +120,7 @@ Redirect rules:
 
 ### 4.1 `getProducts`
 
-**Service:** `lib/services/product-service.ts`  
+**Service:** `backend/services/product-service.ts`  
 **Allowed Roles:** Admin, Manager, Cashier, Barista  
 **Purpose:** Load active and non-archived products.
 
@@ -153,14 +153,14 @@ type PosProduct = Product & {
 ### 4.3 `createProduct`, `updateProduct`, `archiveProduct`
 
 **Allowed Roles:** Admin, Manager  
-**Validation:** `lib/validations/product.ts`  
+**Validation:** `backend/validations/product.ts`  
 **Database:** SQL Server `products`
 
 ## 5. Order Services
 
 ### 5.1 `createOrder`
 
-**Service:** `lib/services/order-service.ts`  
+**Service:** `backend/services/order-service.ts`  
 **Allowed Roles:** Admin, Manager, Cashier  
 **Purpose:** Create an order, order items, selected modifiers, payment row, and paid order status.
 
@@ -215,7 +215,7 @@ Allowed transitions:
 
 ### 6.1 `getDashboardSummary`
 
-**Service:** `lib/services/report-service.ts`  
+**Service:** `backend/services/report-service.ts`  
 **Allowed Roles:** Admin, Manager  
 **Purpose:** Load daily sales totals, order count, average order value, hourly sales, payment method summary, best-selling product, and recent orders.
 

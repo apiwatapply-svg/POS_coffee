@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { protectedRouteRoles, roleHomePath } from "@/lib/constants/roles";
+import { protectedRouteRoles, roleHomePath } from "@shared/constants/roles";
 
 describe("role route rules", () => {
   it("redirects each role to the correct home page", () => {

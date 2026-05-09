@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { productSchema } from "@/lib/validations/product";
+import { productSchema } from "@backend/validations/product";
 
 describe("product validation", () => {
   it("accepts a valid product", () => {

@@ -153,8 +153,8 @@ The MVP database must include:
 SQL Server scripts are stored in:
 
 ```text
-mssql/schema.sql
-mssql/seed.sql
+database/mssql/schema.sql
+database/mssql/seed.sql
 ```
 
 ## 8. Security Requirements
@@ -184,18 +184,23 @@ mssql/seed.sql
 
 ```text
 coffee-pos/
-|-- app/
-|-- components/
-|-- docs/
-|-- hooks/
-|-- lib/
+|-- frontend/
+|   |-- app/
+|   |-- components/
+|   |-- hooks/
+|   `-- stores/
+|-- backend/
+|   |-- actions/
 |   |-- auth/
 |   |-- calculations/
 |   |-- mssql/
 |   |-- services/
 |   `-- validations/
-|-- mssql/
-|-- stores/
-|-- tests/
-`-- types/
+|-- shared/
+|   |-- constants/
+|   `-- types/
+|-- database/
+|   `-- mssql/
+|-- docs/
+`-- tests/
 ```
