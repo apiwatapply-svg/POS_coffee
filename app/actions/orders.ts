@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createOrder, updateOrderStatus } from "@/lib/services/order-service";
+import { cancelOrder, createOrder, updateOrderStatus } from "@/lib/services/order-service";
 import type { OrderStatus } from "@/types/domain";
 
 export type OrderActionState = {
@@ -28,5 +28,15 @@ export async function updateOrderStatusAction(formData: FormData) {
   >;
 
   await updateOrderStatus(orderId, status);
+  revalidatePath("/barista");
+}
+
+export async function cancelOrderAction(formData: FormData) {
+  const orderId = String(formData.get("orderId") ?? "");
+  const reason = String(formData.get("reason") ?? "");
+
+  await cancelOrder(orderId, reason || "No reason provided");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
   revalidatePath("/barista");
 }

@@ -3,7 +3,7 @@ import { getCurrentProfile } from "@/lib/services/auth-service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createOrderSchema, validateCheckoutPayment, type CreateOrderInput } from "@/lib/validations/order";
 import type { Database } from "@/types/database";
-import type { OrderStatus } from "@/types/domain";
+import type { OrderStatus, PaymentMethod, PaymentStatus, UserRole } from "@/types/domain";
 
 type OrderItemInsert = Database["public"]["Tables"]["order_items"]["Insert"];
 type StoreSettings = Database["public"]["Tables"]["store_settings"]["Row"];
@@ -20,6 +20,10 @@ const allowedTransitions: Record<OrderStatus, ReadonlyArray<OrderStatus>> = {
 
 export function canUpdateOrderStatus(currentStatus: OrderStatus, nextStatus: OrderStatus) {
   return allowedTransitions[currentStatus].includes(nextStatus);
+}
+
+export function canViewAllOrders(role: UserRole) {
+  return role === "admin" || role === "manager";
 }
 
 function createOrderNumber(now = new Date()) {
@@ -203,6 +207,75 @@ export async function getOrderById(orderId: string) {
   };
 }
 
+export type OrderFilters = {
+  startDate?: string;
+  endDate?: string;
+  cashierId?: string;
+  paymentMethod?: PaymentMethod;
+  orderStatus?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  customerId?: string;
+  orderNumber?: string;
+};
+
+export async function getOrders(filters: OrderFilters = {}) {
+  const profile = await getCurrentProfile();
+
+  if (!profile || !["admin", "manager", "cashier"].includes(profile.role)) {
+    throw new Error("You do not have permission to view orders");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  let query = supabase
+    .from("orders")
+    .select("*, profiles!orders_cashier_id_fkey(full_name), payments(payment_method)")
+    .order("created_at", { ascending: false });
+
+  if (!canViewAllOrders(profile.role)) {
+    query = query.eq("cashier_id", profile.id);
+  } else if (filters.cashierId) {
+    query = query.eq("cashier_id", filters.cashierId);
+  }
+
+  if (filters.startDate) {
+    query = query.gte("created_at", filters.startDate);
+  }
+
+  if (filters.endDate) {
+    query = query.lte("created_at", filters.endDate);
+  }
+
+  if (filters.orderStatus) {
+    query = query.eq("status", filters.orderStatus);
+  }
+
+  if (filters.paymentStatus) {
+    query = query.eq("payment_status", filters.paymentStatus);
+  }
+
+  if (filters.customerId) {
+    query = query.eq("customer_id", filters.customerId);
+  }
+
+  if (filters.orderNumber) {
+    query = query.ilike("order_number", `%${filters.orderNumber}%`);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error("Unable to load orders");
+  }
+
+  let orders = data as unknown as OrderListItem[];
+
+  if (filters.paymentMethod) {
+    orders = orders.filter((order) => order.payments.some((payment) => payment.payment_method === filters.paymentMethod));
+  }
+
+  return orders;
+}
+
 export async function getActiveBaristaOrders() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -250,6 +323,44 @@ export async function updateOrderStatus(orderId: string, status: Extract<OrderSt
   }
 }
 
+export async function cancelOrder(orderId: string, reason: string) {
+  const profile = await getCurrentProfile();
+
+  if (!profile || !["admin", "manager"].includes(profile.role)) {
+    throw new Error("You do not have permission to cancel this order");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: currentOrder, error: loadError } = await supabase
+    .from("orders")
+    .select("status,note")
+    .eq("id", orderId)
+    .single();
+
+  if (loadError || !currentOrder) {
+    throw new Error("Order not found");
+  }
+
+  const status = (currentOrder as { status: OrderStatus; note: string | null }).status;
+  if (!canUpdateOrderStatus(status, "cancelled")) {
+    throw new Error("Invalid status transition");
+  }
+
+  const existingNote = (currentOrder as { status: OrderStatus; note: string | null }).note;
+  const cancelNote = `Cancelled: ${reason}`;
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      status: "cancelled",
+      note: existingNote ? `${existingNote}\n${cancelNote}` : cancelNote,
+    })
+    .eq("id", orderId);
+
+  if (error) {
+    throw new Error("Unable to cancel order");
+  }
+}
+
 export type ReceiptOrder = Database["public"]["Tables"]["orders"]["Row"] & {
   profiles: {
     full_name: string;
@@ -269,6 +380,15 @@ export type BaristaOrder = Database["public"]["Tables"]["orders"]["Row"] & {
       order_item_modifiers: Database["public"]["Tables"]["order_item_modifiers"]["Row"][];
     }
   >;
+};
+
+export type OrderListItem = Database["public"]["Tables"]["orders"]["Row"] & {
+  profiles: {
+    full_name: string;
+  } | null;
+  payments: Array<{
+    payment_method: PaymentMethod;
+  }>;
 };
 
 export type { CreateOrderInput };
