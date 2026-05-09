@@ -15,16 +15,31 @@ type CheckoutPanelProps = {
 
 const initialState: OrderActionState = {};
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
+function SubmitButton({ disabled, onOpenConfirm }: { disabled: boolean; onOpenConfirm: () => void }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       className="h-12 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-stone-400"
       disabled={disabled || pending}
-      type="submit"
+      onClick={onOpenConfirm}
+      type="button"
     >
       {pending ? "Saving..." : "Confirm payment"}
+    </button>
+  );
+}
+
+function ConfirmOrderButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      className="h-11 rounded-md bg-emerald-700 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-stone-400"
+      disabled={pending}
+      type="submit"
+    >
+      {pending ? "Creating order..." : "Create order"}
     </button>
   );
 }
@@ -51,6 +66,7 @@ export function CheckoutPanel({ onClose }: CheckoutPanelProps) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [receivedAmount, setReceivedAmount] = useState(totals.totalAmount);
   const [qrPaymentConfirmed, setQrPaymentConfirmed] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const change = paymentMethod === "cash" ? calculateChange({ totalAmount: totals.totalAmount, receivedAmount }) : 0;
   const clientError =
@@ -181,8 +197,48 @@ export function CheckoutPanel({ onClose }: CheckoutPanelProps) {
             <button className="h-12 rounded-md border border-stone-300 text-sm font-semibold" onClick={onClose} type="button">
               Cancel
             </button>
-            <SubmitButton disabled={Boolean(clientError)} />
+            <SubmitButton disabled={Boolean(clientError)} onOpenConfirm={() => setConfirmOpen(true)} />
           </div>
+
+          {confirmOpen ? (
+            <div
+              className="fixed inset-0 flex items-center justify-center bg-black/50 p-4"
+              style={{ zIndex: 60 }}
+            >
+              <section className="w-full max-w-md rounded-md bg-white shadow-xl">
+                <div className="border-b border-stone-200 px-5 py-4">
+                  <h3 className="text-lg font-semibold">Confirm order</h3>
+                  <p className="mt-1 text-sm text-stone-600">
+                    Please confirm before creating this order.
+                  </p>
+                </div>
+                <div className="space-y-3 p-5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-stone-600">Items</span>
+                    <span className="font-medium">{items.length} item types</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-600">Payment</span>
+                    <span className="font-medium">{paymentMethod.replaceAll("_", " ")}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-semibold">
+                    <span>Total</span>
+                    <span>THB {totals.totalAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 border-t border-stone-200 p-5">
+                  <button
+                    className="h-11 rounded-md border border-stone-300 text-sm font-semibold"
+                    onClick={() => setConfirmOpen(false)}
+                    type="button"
+                  >
+                    Back
+                  </button>
+                  <ConfirmOrderButton />
+                </div>
+              </section>
+            </div>
+          ) : null}
         </form>
       </section>
     </div>
