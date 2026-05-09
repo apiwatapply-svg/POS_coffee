@@ -5,6 +5,7 @@ import { createOrderSchema, validateCheckoutPayment, type CreateOrderInput } fro
 import type { Database } from "@/types/database";
 
 type OrderItemInsert = Database["public"]["Tables"]["order_items"]["Insert"];
+type StoreSettings = Database["public"]["Tables"]["store_settings"]["Row"];
 
 function createOrderNumber(now = new Date()) {
   const stamp = now.toISOString().slice(0, 10).replaceAll("-", "");
@@ -153,5 +154,50 @@ export async function createOrder(input: unknown) {
   };
 }
 
-export type { CreateOrderInput };
+export async function getOrderById(orderId: string) {
+  const supabase = await createSupabaseServerClient();
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select(
+      `
+        *,
+        profiles!orders_cashier_id_fkey(full_name),
+        order_items(
+          *,
+          order_item_modifiers(*)
+        ),
+        payments(*)
+      `,
+    )
+    .eq("id", orderId)
+    .single();
 
+  if (orderError || !order) {
+    throw new Error("Order not found");
+  }
+
+  const { data: settings, error: settingsError } = await supabase.from("store_settings").select("*").limit(1).single();
+
+  if (settingsError || !settings) {
+    throw new Error("Store settings not found");
+  }
+
+  return {
+    order: order as unknown as ReceiptOrder,
+    settings: settings as StoreSettings,
+  };
+}
+
+export type ReceiptOrder = Database["public"]["Tables"]["orders"]["Row"] & {
+  profiles: {
+    full_name: string;
+  } | null;
+  order_items: Array<
+    Database["public"]["Tables"]["order_items"]["Row"] & {
+      order_item_modifiers: Database["public"]["Tables"]["order_item_modifiers"]["Row"][];
+    }
+  >;
+  payments: Database["public"]["Tables"]["payments"]["Row"][];
+};
+
+export type { CreateOrderInput };

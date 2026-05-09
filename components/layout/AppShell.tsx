@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
 export function AppShell({ children, role, userName }: AppShellProps) {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-950">
-      <header className="border-b border-stone-200 bg-white">
+      <header className="border-b border-stone-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
           <Link className="flex items-center gap-2 font-semibold" href="/pos">
             <span className="flex size-9 items-center justify-center rounded-md bg-emerald-700 text-white">
