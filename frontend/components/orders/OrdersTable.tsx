@@ -67,11 +67,12 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                   </Link>
                   <Link
                     aria-label={`Print ${order.receipt_number}`}
-                    className="inline-flex size-9 items-center justify-center rounded-md border border-stone-300 text-stone-700 hover:bg-stone-100"
+                    className="inline-flex h-9 items-center gap-2 rounded-md border border-stone-300 px-3 font-semibold text-stone-700 hover:bg-stone-100"
                     href={`/receipt/${order.id}`}
                     title="Reprint receipt"
                   >
                     <Printer aria-hidden="true" size={16} />
+                    Reprint
                   </Link>
                 </div>
               </td>

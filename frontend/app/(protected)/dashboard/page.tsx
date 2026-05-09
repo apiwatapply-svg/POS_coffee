@@ -3,6 +3,10 @@ import { DashboardCharts } from "@frontend/components/dashboard/DashboardCharts"
 import { requireRole } from "@backend/services/auth-service";
 import { getDashboardSummary } from "@backend/services/report-service";
 
+type DashboardPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
 function todayBangkokDate() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",
@@ -12,17 +16,50 @@ function todayBangkokDate() {
   }).format(new Date());
 }
 
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function isDateInput(value: string | undefined): value is string {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+}
+
+function shiftBangkokDate(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00+07:00`);
+  value.setDate(value.getDate() + days);
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+}
+
+function displayDate(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeZone: "Asia/Bangkok",
+  }).format(new Date(`${date}T00:00:00+07:00`));
+}
+
 function money(value: number) {
   return `THB ${value.toFixed(2)}`;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   await requireRole(["admin", "manager"]);
-  const summary = await getDashboardSummary(todayBangkokDate());
+  const params = await searchParams;
+  const today = todayBangkokDate();
+  const selectedDateParam = firstParam(params.date);
+  const selectedDate = isDateInput(selectedDateParam) ? selectedDateParam : today;
+  const summary = await getDashboardSummary(selectedDate);
+  const previousDate = shiftBangkokDate(selectedDate, -1);
+  const nextDate = shiftBangkokDate(selectedDate, 1);
 
   const cards = [
-    { label: "Total sales today", value: money(summary.totalSalesToday) },
-    { label: "Total orders today", value: summary.totalOrdersToday.toString() },
+    { label: "Total sales", value: money(summary.totalSalesToday) },
+    { label: "Total orders", value: summary.totalOrdersToday.toString() },
     { label: "Total cups sold", value: summary.totalCupsSoldToday.toString() },
     { label: "Average order value", value: money(summary.averageOrderValue) },
   ];
@@ -33,9 +70,40 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 px-6 py-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-stone-600">Today&apos;s sales and operational snapshot.</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <p className="text-sm text-stone-600">Daily sales and operational snapshot for {displayDate(selectedDate)}.</p>
+        </div>
+        <form className="flex flex-wrap items-center gap-2 rounded-md border border-stone-200 bg-white p-2">
+          <Link
+            className="inline-flex h-10 items-center rounded-md border border-stone-300 px-3 text-sm font-semibold text-stone-700"
+            href={`/dashboard?date=${previousDate}`}
+          >
+            Previous
+          </Link>
+          <input
+            className="h-10 rounded-md border border-stone-300 px-3 text-sm"
+            defaultValue={selectedDate}
+            name="date"
+            type="date"
+          />
+          <button className="h-10 rounded-md bg-stone-950 px-4 text-sm font-semibold text-white" type="submit">
+            View
+          </button>
+          <Link
+            className="inline-flex h-10 items-center rounded-md border border-stone-300 px-3 text-sm font-semibold text-stone-700"
+            href={`/dashboard?date=${nextDate}`}
+          >
+            Next
+          </Link>
+          <Link
+            className="inline-flex h-10 items-center rounded-md border border-emerald-700 px-3 text-sm font-semibold text-emerald-700"
+            href="/dashboard"
+          >
+            Today
+          </Link>
+        </form>
       </div>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -49,7 +117,7 @@ export default async function DashboardPage() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-md border border-stone-200 bg-white p-5">
-          <p className="text-sm font-medium text-emerald-700">Best-selling product today</p>
+          <p className="text-sm font-medium text-emerald-700">Best-selling product</p>
           <h2 className="mt-2 text-xl font-semibold">
             {summary.bestSellingProductToday?.productName ?? "No product sales today"}
           </h2>
@@ -60,7 +128,7 @@ export default async function DashboardPage() {
           ) : null}
         </article>
         <article className="rounded-md border border-stone-200 bg-white p-5">
-          <p className="text-sm font-medium text-red-700">Slowest-selling product today</p>
+          <p className="text-sm font-medium text-red-700">Slowest-selling product</p>
           <h2 className="mt-2 text-xl font-semibold">
             {summary.worstSellingProductToday?.productName ?? "No product data"}
           </h2>
@@ -73,7 +141,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="rounded-md border border-stone-200 bg-white p-5">
-        <h2 className="text-base font-semibold">Sales by category today</h2>
+        <h2 className="text-base font-semibold">Sales by category</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
             <thead className="border-b border-stone-200 text-left text-stone-500">
@@ -106,7 +174,7 @@ export default async function DashboardPage() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-md border border-stone-200 bg-white p-5">
-          <h2 className="text-base font-semibold">Top products today</h2>
+          <h2 className="text-base font-semibold">Top products</h2>
           <div className="mt-4 space-y-2">
             {topProducts.length === 0 ? <p className="text-sm text-stone-500">No product sales today.</p> : null}
             {topProducts.map((product, index) => (
@@ -124,7 +192,7 @@ export default async function DashboardPage() {
           </div>
         </article>
         <article className="rounded-md border border-stone-200 bg-white p-5">
-          <h2 className="text-base font-semibold">Slow products today</h2>
+          <h2 className="text-base font-semibold">Slow products</h2>
           <div className="mt-4 space-y-2">
             {slowProducts.map((product, index) => (
               <div className="flex items-center justify-between gap-3 rounded-md bg-stone-50 px-3 py-2 text-sm" key={product.productId}>
@@ -144,25 +212,26 @@ export default async function DashboardPage() {
 
       <section className="rounded-md border border-stone-200 bg-white p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold">Recent orders</h2>
-          <Link className="text-sm font-semibold text-emerald-700" href="/orders">
-            View all
+          <h2 className="text-base font-semibold">Orders on {displayDate(selectedDate)}</h2>
+          <Link className="text-sm font-semibold text-emerald-700" href={`/orders?startDate=${selectedDate}&endDate=${selectedDate}`}>
+            View day
           </Link>
         </div>
         <div className="space-y-2">
           {summary.recentOrders.length === 0 ? <p className="text-sm text-stone-500">No recent orders.</p> : null}
           {summary.recentOrders.map((order) => (
-            <Link
-              className="flex items-center justify-between gap-3 rounded-md bg-stone-50 px-3 py-2 text-sm hover:bg-stone-100"
-              href={`/orders/${order.id}`}
-              key={order.id}
-            >
-              <span>
-                <span className="font-medium">{order.orderNumber}</span>
-                <span className="ml-2 text-stone-500">{order.cashierName}</span>
-              </span>
-              <span className="font-semibold">THB {order.totalAmount.toFixed(2)}</span>
-            </Link>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-stone-50 px-3 py-2 text-sm" key={order.id}>
+              <Link className="font-medium hover:text-emerald-700" href={`/orders/${order.id}`}>
+                {order.orderNumber}
+                <span className="ml-2 font-normal text-stone-500">{order.cashierName}</span>
+              </Link>
+              <div className="flex items-center gap-3">
+                <span className="font-semibold">THB {order.totalAmount.toFixed(2)}</span>
+                <Link className="font-semibold text-emerald-700" href={`/receipt/${order.id}`}>
+                  Reprint
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       </section>

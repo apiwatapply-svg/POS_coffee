@@ -37,8 +37,18 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           name="orderNumber"
           placeholder="Order number"
         />
-        <input className="h-11 rounded-md border border-stone-300 px-3 text-sm" name="startDate" type="date" />
-        <input className="h-11 rounded-md border border-stone-300 px-3 text-sm" name="endDate" type="date" />
+        <input
+          className="h-11 rounded-md border border-stone-300 px-3 text-sm"
+          defaultValue={filters.startDate}
+          name="startDate"
+          type="date"
+        />
+        <input
+          className="h-11 rounded-md border border-stone-300 px-3 text-sm"
+          defaultValue={filters.endDate}
+          name="endDate"
+          type="date"
+        />
         <select className="h-11 rounded-md border border-stone-300 px-3 text-sm" name="orderStatus" defaultValue="">
           <option value="">All statuses</option>
           <option value="pending">Pending</option>

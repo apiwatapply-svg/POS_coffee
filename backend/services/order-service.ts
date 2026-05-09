@@ -295,6 +295,16 @@ export type OrderFilters = {
   orderNumber?: string;
 };
 
+function bangkokDateBoundary(date: string, dayOffset: number) {
+  const value = new Date(`${date}T00:00:00+07:00`);
+  value.setDate(value.getDate() + dayOffset);
+  return value.toISOString();
+}
+
+function isDateInput(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 export async function getOrders(filters: OrderFilters = {}) {
   const profile = await getCurrentProfile();
 
@@ -315,12 +325,12 @@ export async function getOrders(filters: OrderFilters = {}) {
 
   if (filters.startDate) {
     conditions.push("o.created_at >= @startDate");
-    params.startDate = filters.startDate;
+    params.startDate = isDateInput(filters.startDate) ? bangkokDateBoundary(filters.startDate, 0) : filters.startDate;
   }
 
   if (filters.endDate) {
-    conditions.push("o.created_at <= @endDate");
-    params.endDate = filters.endDate;
+    conditions.push("o.created_at < @endDate");
+    params.endDate = isDateInput(filters.endDate) ? bangkokDateBoundary(filters.endDate, 1) : filters.endDate;
   }
 
   if (filters.orderStatus) {
