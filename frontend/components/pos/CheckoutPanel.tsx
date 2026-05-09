@@ -14,6 +14,8 @@ type CheckoutPanelProps = {
 };
 
 const initialState: OrderActionState = {};
+const promptPayTarget = "0925853800";
+const cashTenderOptions = [20, 50, 100, 500, 1000];
 
 function SubmitButton({ disabled, onOpenConfirm }: { disabled: boolean; onOpenConfirm: () => void }) {
   const { pending } = useFormStatus();
@@ -69,12 +71,13 @@ export function CheckoutPanel({ onClose }: CheckoutPanelProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const change = paymentMethod === "cash" ? calculateChange({ totalAmount: totals.totalAmount, receivedAmount }) : 0;
+  const isQrPayment = paymentMethod === "promptpay_qr" || paymentMethod === "qr_payment";
   const clientError =
     items.length === 0
       ? paymentMessages.emptyCart
       : paymentMethod === "cash" && receivedAmount < totals.totalAmount
         ? paymentMessages.cashNotEnough
-        : (paymentMethod === "promptpay_qr" || paymentMethod === "qr_payment") && !qrPaymentConfirmed
+        : isQrPayment && !qrPaymentConfirmed
           ? paymentMessages.qrNotConfirmed
           : null;
 
@@ -162,29 +165,71 @@ export function CheckoutPanel({ onClose }: CheckoutPanelProps) {
           </fieldset>
 
           {paymentMethod === "cash" ? (
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-stone-700">Cash received</span>
-              <input
-                className="h-11 w-full rounded-md border border-stone-300 px-3"
-                min="0"
-                onChange={(event) => setReceivedAmount(Number(event.target.value))}
-                step="0.01"
-                type="number"
-                value={receivedAmount}
-              />
-              <span className="block text-sm text-stone-600">Change: THB {Math.max(change, 0).toFixed(2)}</span>
-            </label>
+            <section className="space-y-3 rounded-md border border-stone-200 bg-stone-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <label className="min-w-48 flex-1 space-y-2">
+                  <span className="text-sm font-medium text-stone-700">Cash received</span>
+                  <input
+                    className="h-11 w-full rounded-md border border-stone-300 bg-white px-3"
+                    min="0"
+                    onChange={(event) => setReceivedAmount(Number(event.target.value))}
+                    step="0.01"
+                    type="number"
+                    value={receivedAmount}
+                  />
+                </label>
+                <div className="rounded-md bg-white px-4 py-3 text-right">
+                  <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Change</p>
+                  <p className="text-2xl font-semibold text-emerald-700">THB {Math.max(change, 0).toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                <button
+                  className="h-10 rounded-md border border-stone-300 bg-white text-sm font-semibold"
+                  onClick={() => setReceivedAmount(totals.totalAmount)}
+                  type="button"
+                >
+                  Exact
+                </button>
+                {cashTenderOptions.map((amount) => (
+                  <button
+                    className="h-10 rounded-md border border-stone-300 bg-white text-sm font-semibold disabled:opacity-40"
+                    disabled={amount < totals.totalAmount}
+                    key={amount}
+                    onClick={() => setReceivedAmount(amount)}
+                    type="button"
+                  >
+                    {amount}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-stone-500">
+                Select the banknote received or enter a custom amount to prevent wrong change.
+              </p>
+            </section>
           ) : null}
 
-          {paymentMethod === "promptpay_qr" || paymentMethod === "qr_payment" ? (
-            <label className="flex items-center gap-2 rounded-md bg-stone-50 p-3 text-sm font-medium text-stone-700">
-              <input
-                checked={qrPaymentConfirmed}
-                onChange={(event) => setQrPaymentConfirmed(event.target.checked)}
-                type="checkbox"
-              />
-              Payment has been received
-            </label>
+          {isQrPayment ? (
+            <section className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">PromptPay receiver</p>
+                  <p className="mt-1 text-2xl font-bold tracking-wide text-emerald-900">{promptPayTarget}</p>
+                </div>
+                <div className="rounded-md bg-white px-4 py-3 text-right">
+                  <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Amount</p>
+                  <p className="text-2xl font-semibold text-emerald-700">THB {totals.totalAmount.toFixed(2)}</p>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 rounded-md bg-white p-3 text-sm font-medium text-stone-700">
+                <input
+                  checked={qrPaymentConfirmed}
+                  onChange={(event) => setQrPaymentConfirmed(event.target.checked)}
+                  type="checkbox"
+                />
+                Payment has been received to {promptPayTarget}
+              </label>
+            </section>
           ) : null}
 
           {clientError || state.error ? (
@@ -221,6 +266,18 @@ export function CheckoutPanel({ onClose }: CheckoutPanelProps) {
                     <span className="text-stone-600">Payment</span>
                     <span className="font-medium">{paymentMethod.replaceAll("_", " ")}</span>
                   </div>
+                  {paymentMethod === "cash" ? (
+                    <div className="flex justify-between">
+                      <span className="text-stone-600">Change</span>
+                      <span className="font-medium">THB {Math.max(change, 0).toFixed(2)}</span>
+                    </div>
+                  ) : null}
+                  {isQrPayment ? (
+                    <div className="flex justify-between">
+                      <span className="text-stone-600">Receiver</span>
+                      <span className="font-medium">{promptPayTarget}</span>
+                    </div>
+                  ) : null}
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <span>THB {totals.totalAmount.toFixed(2)}</span>
