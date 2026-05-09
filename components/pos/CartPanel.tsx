@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
+import { CheckoutPanel } from "@/components/pos/CheckoutPanel";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { usePosCartStore } from "@/stores/pos-cart-store";
 
 export function CartPanel() {
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const isOnline = useNetworkStatus();
   const items = usePosCartStore((state) => state.items);
   const updateQuantity = usePosCartStore((state) => state.updateQuantity);
@@ -110,13 +113,15 @@ export function CartPanel() {
           <button
             className="h-11 rounded-md bg-emerald-700 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-stone-400"
             disabled={items.length === 0 || !isOnline}
+            onClick={() => setCheckoutOpen(true)}
             type="button"
           >
             Checkout
           </button>
         </div>
       </div>
+
+      {checkoutOpen ? <CheckoutPanel onClose={() => setCheckoutOpen(false)} /> : null}
     </aside>
   );
 }
-
