@@ -9,6 +9,30 @@ export type ProductWithCategory = Product & {
   categories: Pick<Category, "name"> | null;
 };
 
+export type PosModifierOption = {
+  id: string;
+  name: string;
+  price_delta: number;
+  sort_order: number;
+};
+
+export type PosModifierGroup = {
+  id: string;
+  name: string;
+  is_required: boolean;
+  min_select: number;
+  max_select: number;
+  sort_order: number;
+  modifier_options: PosModifierOption[];
+};
+
+export type PosProduct = Product & {
+  categories: Pick<Category, "id" | "name"> | null;
+  product_modifier_groups: Array<{
+    modifier_groups: PosModifierGroup | null;
+  }>;
+};
+
 export async function getCategories() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -37,6 +61,37 @@ export async function getProducts() {
   }
 
   return data as ProductWithCategory[];
+}
+
+export async function getPosCatalog() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      `
+        *,
+        categories(id,name),
+        product_modifier_groups(
+          modifier_groups(
+            id,
+            name,
+            is_required,
+            min_select,
+            max_select,
+            sort_order,
+            modifier_options(id,name,price_delta,sort_order)
+          )
+        )
+      `,
+    )
+    .eq("is_archived", false)
+    .order("sort_order");
+
+  if (error) {
+    throw new Error("Unable to load POS catalog");
+  }
+
+  return data as PosProduct[];
 }
 
 export async function getProductById(id: string) {
@@ -107,4 +162,3 @@ export async function archiveProduct(id: string) {
     throw new Error("Unable to archive product");
   }
 }
-
