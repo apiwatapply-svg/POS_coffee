@@ -1790,40 +1790,40 @@ The system is accepted when the following conditions are met:
 
 ```text
 coffee-pos/
-├── app/
-│   ├── login/
-│   ├── forgot-password/
-│   ├── dashboard/
-│   ├── pos/
-│   ├── barista/
-│   ├── products/
-│   ├── categories/
-│   ├── modifiers/
-│   ├── orders/
-│   ├── inventory/
-│   ├── customers/
-│   ├── staff/
-│   ├── reports/
-│   └── settings/
-├── components/
-│   ├── ui/
-│   ├── pos/
-│   ├── products/
-│   ├── orders/
-│   ├── inventory/
-│   └── layout/
-├── lib/
-│   ├── supabase/
-│   ├── services/
-│   ├── validations/
-│   └── utils/
-├── hooks/
-├── stores/
-├── types/
-├── public/
-└── supabase/
-    ├── migrations/
-    └── seed.sql
+|-- app/
+|   |-- login/
+|   |-- forgot-password/
+|   |-- dashboard/
+|   |-- pos/
+|   |-- barista/
+|   |-- products/
+|   |-- categories/
+|   |-- modifiers/
+|   |-- orders/
+|   |-- inventory/
+|   |-- customers/
+|   |-- staff/
+|   |-- reports/
+|   `-- settings/
+|-- components/
+|   |-- ui/
+|   |-- pos/
+|   |-- products/
+|   |-- orders/
+|   |-- inventory/
+|   `-- layout/
+|-- lib/
+|   |-- supabase/
+|   |-- services/
+|   |-- validations/
+|   `-- utils/
+|-- hooks/
+|-- stores/
+|-- types/
+|-- public/
+`-- supabase/
+    |-- migrations/
+    `-- seed.sql
 ```
 
 ---
