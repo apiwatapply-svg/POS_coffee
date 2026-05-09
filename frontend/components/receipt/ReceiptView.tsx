@@ -20,17 +20,55 @@ function formatDate(value: string, timeZone: string) {
 
 export function ReceiptView({ order, settings }: ReceiptViewProps) {
   const payment = order.payments[0];
-  const paperClass = settings.printer_paper_size === "58mm" ? "w-[219px]" : "w-[302px]";
+  const paperWidth = settings.printer_paper_size === "58mm" ? "58mm" : "80mm";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 print:p-0">
+    <div className="mx-auto max-w-3xl px-4 py-6 print:m-0 print:w-auto print:p-0">
+      <style>{`
+        @media print {
+          @page {
+            size: ${paperWidth} auto;
+            margin: 0;
+          }
+
+          html,
+          body {
+            width: ${paperWidth};
+            min-height: 0;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+          }
+
+          body * {
+            visibility: hidden;
+          }
+
+          #receipt-print-area,
+          #receipt-print-area * {
+            visibility: visible;
+          }
+
+          #receipt-print-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: ${paperWidth};
+            min-height: 0;
+          }
+        }
+      `}</style>
       <div className="mb-4 flex justify-end print:hidden">
         <button className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white" onClick={() => window.print()}>
           Print
         </button>
       </div>
 
-      <section className={`mx-auto bg-white p-4 text-stone-950 shadow-sm print:shadow-none ${paperClass}`}>
+      <section
+        className="mx-auto bg-white p-3 text-stone-950 shadow-sm print:m-0 print:p-2 print:shadow-none"
+        id="receipt-print-area"
+        style={{ width: paperWidth }}
+      >
         <header className="space-y-1 text-center">
           <h1 className="text-base font-bold">{settings.store_name}</h1>
           {settings.address ? <p className="text-xs">{settings.address}</p> : null}
