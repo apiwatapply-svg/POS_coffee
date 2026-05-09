@@ -3,9 +3,24 @@ import { getCurrentProfile } from "@/lib/services/auth-service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createOrderSchema, validateCheckoutPayment, type CreateOrderInput } from "@/lib/validations/order";
 import type { Database } from "@/types/database";
+import type { OrderStatus } from "@/types/domain";
 
 type OrderItemInsert = Database["public"]["Tables"]["order_items"]["Insert"];
 type StoreSettings = Database["public"]["Tables"]["store_settings"]["Row"];
+type ActiveOrderStatus = Extract<OrderStatus, "pending" | "preparing" | "ready">;
+
+const allowedTransitions: Record<OrderStatus, ReadonlyArray<OrderStatus>> = {
+  pending: ["preparing", "cancelled"],
+  preparing: ["ready", "cancelled"],
+  ready: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+  refunded: [],
+};
+
+export function canUpdateOrderStatus(currentStatus: OrderStatus, nextStatus: OrderStatus) {
+  return allowedTransitions[currentStatus].includes(nextStatus);
+}
 
 function createOrderNumber(now = new Date()) {
   const stamp = now.toISOString().slice(0, 10).replaceAll("-", "");
@@ -188,6 +203,53 @@ export async function getOrderById(orderId: string) {
   };
 }
 
+export async function getActiveBaristaOrders() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, order_items(*, order_item_modifiers(*))")
+    .eq("payment_status", "paid")
+    .in("status", ["pending", "preparing", "ready"])
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error("Unable to load barista queue");
+  }
+
+  return data as unknown as BaristaOrder[];
+}
+
+export async function updateOrderStatus(orderId: string, status: Extract<OrderStatus, "preparing" | "ready" | "completed" | "cancelled">) {
+  const profile = await getCurrentProfile();
+
+  if (!profile || !["admin", "manager", "barista"].includes(profile.role)) {
+    throw new Error("You do not have permission to update this order");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: currentOrder, error: loadError } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("id", orderId)
+    .single();
+
+  if (loadError || !currentOrder) {
+    throw new Error("Order not found");
+  }
+
+  const currentStatus = (currentOrder as { status: OrderStatus }).status;
+
+  if (!canUpdateOrderStatus(currentStatus, status)) {
+    throw new Error("Invalid status transition");
+  }
+
+  const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
+
+  if (error) {
+    throw new Error("Unable to update order status");
+  }
+}
+
 export type ReceiptOrder = Database["public"]["Tables"]["orders"]["Row"] & {
   profiles: {
     full_name: string;
@@ -198,6 +260,15 @@ export type ReceiptOrder = Database["public"]["Tables"]["orders"]["Row"] & {
     }
   >;
   payments: Database["public"]["Tables"]["payments"]["Row"][];
+};
+
+export type BaristaOrder = Database["public"]["Tables"]["orders"]["Row"] & {
+  status: ActiveOrderStatus;
+  order_items: Array<
+    Database["public"]["Tables"]["order_items"]["Row"] & {
+      order_item_modifiers: Database["public"]["Tables"]["order_item_modifiers"]["Row"][];
+    }
+  >;
 };
 
 export type { CreateOrderInput };
