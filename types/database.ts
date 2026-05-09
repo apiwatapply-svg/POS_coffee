@@ -27,6 +27,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
       };
       categories: {
         Row: {
@@ -48,6 +49,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["categories"]["Insert"]>;
+        Relationships: [];
       };
       products: {
         Row: {
@@ -83,6 +85,15 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["products"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       modifier_groups: {
         Row: {
@@ -104,6 +115,7 @@ export type Database = {
           sort_order?: number;
         };
         Update: Partial<Database["public"]["Tables"]["modifier_groups"]["Insert"]>;
+        Relationships: [];
       };
       modifier_options: {
         Row: {
@@ -123,6 +135,15 @@ export type Database = {
           sort_order?: number;
         };
         Update: Partial<Database["public"]["Tables"]["modifier_options"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "modifier_options_modifier_group_id_fkey";
+            columns: ["modifier_group_id"];
+            isOneToOne: false;
+            referencedRelation: "modifier_groups";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       product_modifier_groups: {
         Row: {
@@ -136,6 +157,22 @@ export type Database = {
           modifier_group_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["product_modifier_groups"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "product_modifier_groups_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_modifier_groups_modifier_group_id_fkey";
+            columns: ["modifier_group_id"];
+            isOneToOne: false;
+            referencedRelation: "modifier_groups";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       orders: {
         Row: {
@@ -175,6 +212,15 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["orders"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "orders_cashier_id_fkey";
+            columns: ["cashier_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       order_items: {
         Row: {
@@ -202,6 +248,22 @@ export type Database = {
           note?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["order_items"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       order_item_modifiers: {
         Row: {
@@ -219,6 +281,15 @@ export type Database = {
           price_delta?: number;
         };
         Update: Partial<Database["public"]["Tables"]["order_item_modifiers"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "order_item_modifiers_order_item_id_fkey";
+            columns: ["order_item_id"];
+            isOneToOne: false;
+            referencedRelation: "order_items";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       payments: {
         Row: {
@@ -246,6 +317,22 @@ export type Database = {
           created_by: string;
         };
         Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       store_settings: {
         Row: {
@@ -285,6 +372,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["store_settings"]["Insert"]>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
@@ -298,4 +386,3 @@ export type Database = {
     CompositeTypes: Record<string, never>;
   };
 };
-
