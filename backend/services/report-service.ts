@@ -33,7 +33,27 @@ export type DashboardSummary = {
     productId: string;
     productName: string;
     quantity: number;
+    totalSales: number;
   };
+  worstSellingProductToday?: {
+    productId: string;
+    productName: string;
+    quantity: number;
+    totalSales: number;
+  };
+  categorySalesToday: Array<{
+    categoryId: string;
+    categoryName: string;
+    quantity: number;
+    totalSales: number;
+  }>;
+  productSalesToday: Array<{
+    productId: string;
+    productName: string;
+    categoryName: string;
+    quantity: number;
+    totalSales: number;
+  }>;
   salesByHour: Array<{
     hour: string;
     totalSales: number;
@@ -106,6 +126,19 @@ export async function getDashboardSummary(date: string): Promise<DashboardSummar
           idParams,
         )
       : [];
+  const activeProducts = await query<{
+    product_id: string;
+    product_name: string;
+    category_id: string;
+    category_name: string;
+  }>(`
+    select p.id as product_id, p.name as product_name, c.id as category_id, c.name as category_name
+    from products p
+    join categories c on c.id = p.category_id
+    where p.is_archived = 0
+      and c.is_active = 1
+    order by c.sort_order, p.sort_order, p.name
+  `);
   const orders = orderRows.map((order) => ({
     ...order,
     profiles: order.cashier_name ? { full_name: order.cashier_name } : null,
@@ -119,8 +152,32 @@ export async function getDashboardSummary(date: string): Promise<DashboardSummar
     hour: hour.toString().padStart(2, "0"),
     totalSales: 0,
   }));
-  const productQuantities = new Map<string, { productId: string; productName: string; quantity: number }>();
+  const categorySales = new Map<string, { categoryId: string; categoryName: string; quantity: number; totalSales: number }>();
+  const productSales = new Map<
+    string,
+    { productId: string; productName: string; categoryName: string; quantity: number; totalSales: number }
+  >();
   const paymentSummary = new Map<PaymentMethod, { paymentMethod: PaymentMethod; totalAmount: number; orderCount: number }>();
+  const activeProductsById = new Map(activeProducts.map((product) => [product.product_id, product]));
+
+  activeProducts.forEach((product) => {
+    if (!categorySales.has(product.category_id)) {
+      categorySales.set(product.category_id, {
+        categoryId: product.category_id,
+        categoryName: product.category_name,
+        quantity: 0,
+        totalSales: 0,
+      });
+    }
+
+    productSales.set(product.product_id, {
+      productId: product.product_id,
+      productName: product.product_name,
+      categoryName: product.category_name,
+      quantity: 0,
+      totalSales: 0,
+    });
+  });
 
   orders.forEach((order) => {
     const hour = new Intl.DateTimeFormat("en-US", {
@@ -134,13 +191,29 @@ export async function getDashboardSummary(date: string): Promise<DashboardSummar
     }
 
     order.order_items.forEach((item) => {
-      const current = productQuantities.get(item.product_id) ?? {
+      const current = productSales.get(item.product_id) ?? {
         productId: item.product_id,
         productName: item.product_name,
+        categoryName: "Uncategorized",
         quantity: 0,
+        totalSales: 0,
       };
       current.quantity += Number(item.quantity);
-      productQuantities.set(item.product_id, current);
+      current.totalSales += Number(item.total_price);
+      productSales.set(item.product_id, current);
+
+      const activeProduct = activeProductsById.get(item.product_id);
+      if (activeProduct) {
+        const category = categorySales.get(activeProduct.category_id) ?? {
+          categoryId: activeProduct.category_id,
+          categoryName: activeProduct.category_name,
+          quantity: 0,
+          totalSales: 0,
+        };
+        category.quantity += Number(item.quantity);
+        category.totalSales += Number(item.total_price);
+        categorySales.set(activeProduct.category_id, category);
+      }
     });
 
     const paymentMethod = order.payments[0]?.payment_method;
@@ -156,8 +229,16 @@ export async function getDashboardSummary(date: string): Promise<DashboardSummar
     }
   });
 
-  const bestSellingProductToday = Array.from(productQuantities.values()).sort((a, b) => b.quantity - a.quantity)[0];
-  const totalCupsSoldToday = Array.from(productQuantities.values()).reduce((sum, product) => sum + product.quantity, 0);
+  const productSalesToday = Array.from(productSales.values()).sort(
+    (a, b) => b.quantity - a.quantity || b.totalSales - a.totalSales || a.productName.localeCompare(b.productName),
+  );
+  const bestSellingProductToday = productSalesToday.find((product) => product.quantity > 0);
+  const worstSellingProductToday = productSalesToday.length
+    ? [...productSalesToday].sort(
+        (a, b) => a.quantity - b.quantity || a.totalSales - b.totalSales || a.productName.localeCompare(b.productName),
+      )[0]
+    : undefined;
+  const totalCupsSoldToday = productSalesToday.reduce((sum, product) => sum + product.quantity, 0);
 
   return {
     totalSalesToday,
@@ -165,6 +246,9 @@ export async function getDashboardSummary(date: string): Promise<DashboardSummar
     totalCupsSoldToday,
     averageOrderValue,
     bestSellingProductToday,
+    worstSellingProductToday,
+    categorySalesToday: Array.from(categorySales.values()),
+    productSalesToday,
     salesByHour,
     paymentMethodSummary: Array.from(paymentSummary.values()),
     recentOrders: orders.slice(0, 8).map((order) => ({
