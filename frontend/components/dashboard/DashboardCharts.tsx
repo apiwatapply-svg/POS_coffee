@@ -9,10 +9,10 @@ type DashboardChartsProps = {
 
 export function DashboardCharts({ summary }: DashboardChartsProps) {
   return (
-    <section className="grid gap-4 lg:grid-cols-[1fr_360px]">
-      <div className="rounded-md border border-stone-200 bg-white p-5">
+    <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="min-w-0 rounded-md border border-stone-200 bg-white p-5">
         <h2 className="mb-4 text-base font-semibold">Sales by hour</h2>
-        <div className="h-72">
+        <div className="h-72 min-w-0">
           <ResponsiveContainer height="100%" width="100%">
             <BarChart data={summary.salesByHour}>
               <CartesianGrid strokeDasharray="3 3" />

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Coffee } from "lucide-react";
+import { Coffee, LogOut } from "lucide-react";
+import { logoutAction } from "@backend/actions/auth";
 import type { UserRole } from "@shared/types/domain";
 
 type AppShellProps = {
@@ -33,9 +34,21 @@ export function AppShell({ children, role, userName }: AppShellProps) {
             </span>
             Coffee POS
           </Link>
-          <div className="text-right text-sm">
-            <p className="font-medium">{userName}</p>
-            <p className="capitalize text-stone-500">{role}</p>
+          <div className="flex items-center gap-3">
+            <div className="text-right text-sm">
+              <p className="font-medium">{userName}</p>
+              <p className="capitalize text-stone-500">{role}</p>
+            </div>
+            <form action={logoutAction}>
+              <button
+                aria-label="Logout"
+                className="inline-flex size-10 items-center justify-center rounded-md border border-stone-300 text-stone-700 hover:bg-stone-100 hover:text-stone-950"
+                title="Logout"
+                type="submit"
+              >
+                <LogOut aria-hidden="true" size={18} />
+              </button>
+            </form>
           </div>
         </div>
         <nav className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-6 pb-4">

@@ -1,8 +1,17 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@backend/services/auth-service";
 import { Coffee } from "lucide-react";
 import { LoginForm } from "@frontend/components/auth/LoginForm";
+import { roleHomePath } from "@shared/constants/roles";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const profile = await getCurrentProfile();
+
+  if (profile?.is_active) {
+    redirect(roleHomePath[profile.role]);
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-stone-50 px-4 py-10 text-stone-950">
       <section className="w-full max-w-md space-y-8">
@@ -28,4 +37,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
