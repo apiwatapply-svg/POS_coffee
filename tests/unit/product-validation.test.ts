@@ -6,7 +6,7 @@ describe("product validation", () => {
     const result = productSchema.safeParse({
       name: "Latte",
       sku: "LATTE",
-      categoryId: "11111111-1111-4111-8111-111111111111",
+      categoryId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
       description: "Espresso with milk",
       price: 85,
       cost: 35,
@@ -48,4 +48,3 @@ describe("product validation", () => {
     expect(result.success).toBe(false);
   });
 });
-

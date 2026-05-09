@@ -4,7 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { X } from "lucide-react";
 import { createOrderAction, type OrderActionState } from "@backend/actions/orders";
-import { calculateChange } from "@backend/calculations/pos";
+import { calculateChange, calculateItemTotal, calculateOrderTotals } from "@backend/calculations/pos";
 import { paymentMessages } from "@backend/validations/order";
 import { usePosCartStore } from "@frontend/stores/pos-cart-store";
 import type { PaymentMethod } from "@shared/types/domain";
@@ -32,7 +32,22 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 export function CheckoutPanel({ onClose }: CheckoutPanelProps) {
   const [state, formAction] = useActionState(createOrderAction, initialState);
   const items = usePosCartStore((store) => store.items);
-  const totals = usePosCartStore((store) => store.totals());
+  const totals = useMemo(
+    () =>
+      calculateOrderTotals({
+        items: items.map((item) => ({
+          totalPrice: calculateItemTotal({
+            basePrice: item.basePrice,
+            modifierTotal: item.modifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0),
+            quantity: item.quantity,
+          }),
+        })),
+        discount: { type: "fixed", value: 0 },
+        vatRate: 7,
+        serviceChargeRate: 0,
+      }),
+    [items],
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [receivedAmount, setReceivedAmount] = useState(totals.totalAmount);
   const [qrPaymentConfirmed, setQrPaymentConfirmed] = useState(false);
@@ -173,4 +188,3 @@ export function CheckoutPanel({ onClose }: CheckoutPanelProps) {
     </div>
   );
 }
-

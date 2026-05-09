@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutSchema } from "@backend/validations/order";
+import { checkoutSchema, createOrderSchema } from "@backend/validations/order";
 
 describe("checkout validation", () => {
   it("rejects an empty cart", () => {
@@ -29,5 +29,30 @@ describe("checkout validation", () => {
 
     expect(result.success).toBe(false);
   });
-});
 
+  it("accepts deterministic MSSQL seed product identifiers", () => {
+    const result = createOrderSchema.safeParse({
+      cart: {
+        items: [
+          {
+            productId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1",
+            productName: "Latte",
+            quantity: 1,
+            basePrice: 85,
+            modifiers: [],
+          },
+        ],
+        discount: {
+          type: "fixed",
+          value: 0,
+        },
+      },
+      payment: {
+        method: "cash",
+        receivedAmount: 100,
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+});

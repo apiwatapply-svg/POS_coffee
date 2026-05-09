@@ -1,7 +1,9 @@
 import { z } from "zod";
 
+const idSchema = z.string().min(1);
+
 export const orderItemSchema = z.object({
-  productId: z.uuid(),
+  productId: idSchema,
   quantity: z.number().int().positive(),
   basePrice: z.number().positive(),
   modifierTotal: z.number().min(0),
@@ -19,7 +21,7 @@ export const createOrderSchema = z.object({
   cart: z.object({
     items: z.array(
       z.object({
-        productId: z.uuid(),
+        productId: idSchema,
         productName: z.string().min(1),
         quantity: z.number().int().positive(),
         basePrice: z.number().positive(),

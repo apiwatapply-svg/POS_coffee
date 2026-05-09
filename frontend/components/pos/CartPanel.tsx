@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
+import { calculateItemTotal, calculateOrderTotals } from "@backend/calculations/pos";
 import { CheckoutPanel } from "@frontend/components/pos/CheckoutPanel";
 import { useNetworkStatus } from "@frontend/hooks/use-network-status";
 import { usePosCartStore } from "@frontend/stores/pos-cart-store";
@@ -13,7 +14,22 @@ export function CartPanel() {
   const updateQuantity = usePosCartStore((state) => state.updateQuantity);
   const removeItem = usePosCartStore((state) => state.removeItem);
   const clearCart = usePosCartStore((state) => state.clearCart);
-  const totals = usePosCartStore((state) => state.totals());
+  const totals = useMemo(
+    () =>
+      calculateOrderTotals({
+        items: items.map((item) => ({
+          totalPrice: calculateItemTotal({
+            basePrice: item.basePrice,
+            modifierTotal: item.modifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0),
+            quantity: item.quantity,
+          }),
+        })),
+        discount: { type: "fixed", value: 0 },
+        vatRate: 7,
+        serviceChargeRate: 0,
+      }),
+    [items],
+  );
 
   return (
     <aside className="flex w-full flex-col rounded-md border border-stone-200 bg-white md:w-[380px]">

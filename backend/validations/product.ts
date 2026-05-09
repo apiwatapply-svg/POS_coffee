@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+const idSchema = z.string().min(1);
+
 export const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   sku: z.string().min(1, "SKU is required"),
-  categoryId: z.uuid(),
+  categoryId: idSchema,
   description: z.string().optional(),
   price: z.number().positive("Selling price must be greater than 0"),
   cost: z.number().min(0, "Cost cannot be negative"),
@@ -11,4 +13,3 @@ export const productSchema = z.object({
   trackStock: z.boolean(),
   sortOrder: z.number().int().min(0),
 });
-
