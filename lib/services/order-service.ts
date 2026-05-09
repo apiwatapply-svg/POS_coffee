@@ -1,12 +1,16 @@
+import { randomUUID } from "node:crypto";
 import { calculateChange, calculateItemTotal, calculateOrderTotals } from "@/lib/calculations/pos";
+import { query, queryOne, withTransaction } from "@/lib/mssql/client";
 import { getCurrentProfile } from "@/lib/services/auth-service";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createOrderSchema, validateCheckoutPayment, type CreateOrderInput } from "@/lib/validations/order";
 import type { Database } from "@/types/database";
 import type { OrderStatus, PaymentMethod, PaymentStatus, UserRole } from "@/types/domain";
 
-type OrderItemInsert = Database["public"]["Tables"]["order_items"]["Insert"];
 type StoreSettings = Database["public"]["Tables"]["store_settings"]["Row"];
+type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
+type OrderItemRow = Database["public"]["Tables"]["order_items"]["Row"];
+type OrderItemModifierRow = Database["public"]["Tables"]["order_item_modifiers"]["Row"];
+type PaymentRow = Database["public"]["Tables"]["payments"]["Row"];
 type ActiveOrderStatus = Extract<OrderStatus, "pending" | "preparing" | "ready">;
 
 const allowedTransitions: Record<OrderStatus, ReadonlyArray<OrderStatus>> = {
@@ -76,94 +80,116 @@ export async function createOrder(input: unknown) {
     throw new Error(paymentError);
   }
 
-  const supabase = await createSupabaseServerClient();
+  const orderId = randomUUID();
   const orderNumber = createOrderNumber();
   const receiptNumber = createReceiptNumber();
-
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .insert({
-      order_number: orderNumber,
-      receipt_number: receiptNumber,
-      cashier_id: profile.id,
-      status: "pending",
-      payment_status: "unpaid",
-      subtotal: totals.subtotal,
-      discount_amount: totals.discountAmount,
-      vat_amount: totals.vatAmount,
-      service_charge_amount: totals.serviceChargeAmount,
-      total_amount: totals.totalAmount,
-      note: parsed.cart.note || null,
-    })
-    .select("id")
-    .single();
-
-  if (orderError || !order) {
-    throw new Error("Unable to save order. Please check your internet connection and try again.");
-  }
-
-  const orderId = (order as { id: string }).id;
-  const orderItems: OrderItemInsert[] = itemTotals.map(({ item, modifierTotal, unitPrice, totalPrice }) => ({
-    order_id: orderId,
-    product_id: item.productId,
-    product_name: item.productName,
-    quantity: item.quantity,
-    base_price: item.basePrice,
-    modifier_total: modifierTotal,
-    unit_price: unitPrice,
-    total_price: totalPrice,
-    note: item.note || null,
-  }));
-
-  const { data: insertedItems, error: itemsError } = await supabase
-    .from("order_items")
-    .insert(orderItems)
-    .select("id");
-
-  if (itemsError || !insertedItems) {
-    throw new Error("Unable to save order items");
-  }
-
-  const modifierRows = itemTotals.flatMap(({ item }, index) =>
-    item.modifiers.map((modifier) => ({
-      order_item_id: (insertedItems as Array<{ id: string }>)[index].id,
-      modifier_group_name: modifier.groupName,
-      modifier_option_name: modifier.optionName,
-      price_delta: modifier.priceDelta,
-    })),
-  );
-
-  if (modifierRows.length > 0) {
-    const { error: modifierError } = await supabase.from("order_item_modifiers").insert(modifierRows);
-    if (modifierError) {
-      throw new Error("Unable to save order modifiers");
-    }
-  }
-
   const receivedAmount = parsed.payment.receivedAmount ?? totals.totalAmount;
-  const { error: paymentErrorResult } = await supabase.from("payments").insert({
-    order_id: orderId,
-    payment_method: parsed.payment.method,
-    amount: totals.totalAmount,
-    received_amount: receivedAmount,
-    change_amount: parsed.payment.method === "cash" ? calculateChange({ totalAmount: totals.totalAmount, receivedAmount }) : 0,
-    status: "paid",
-    transaction_ref: parsed.payment.transactionRef || null,
-    created_by: profile.id,
+  const changeAmount =
+    parsed.payment.method === "cash" ? calculateChange({ totalAmount: totals.totalAmount, receivedAmount }) : 0;
+
+  await withTransaction(async (run) => {
+    await run(
+      `
+        insert into orders (
+          id, order_number, receipt_number, cashier_id, status, payment_status,
+          subtotal, discount_amount, vat_amount, service_charge_amount,
+          total_amount, note
+        )
+        values (
+          @orderId, @orderNumber, @receiptNumber, @cashierId, 'pending', 'unpaid',
+          @subtotal, @discountAmount, @vatAmount, @serviceChargeAmount,
+          @totalAmount, @note
+        )
+      `,
+      {
+        orderId,
+        orderNumber,
+        receiptNumber,
+        cashierId: profile.id,
+        subtotal: totals.subtotal,
+        discountAmount: totals.discountAmount,
+        vatAmount: totals.vatAmount,
+        serviceChargeAmount: totals.serviceChargeAmount,
+        totalAmount: totals.totalAmount,
+        note: parsed.cart.note || null,
+      },
+    );
+
+    for (const { item, modifierTotal, unitPrice, totalPrice } of itemTotals) {
+      const orderItemId = randomUUID();
+      await run(
+        `
+          insert into order_items (
+            id, order_id, product_id, product_name, quantity, base_price,
+            modifier_total, unit_price, total_price, note
+          )
+          values (
+            @orderItemId, @orderId, @productId, @productName, @quantity, @basePrice,
+            @modifierTotal, @unitPrice, @totalPrice, @note
+          )
+        `,
+        {
+          orderItemId,
+          orderId,
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          basePrice: item.basePrice,
+          modifierTotal,
+          unitPrice,
+          totalPrice,
+          note: item.note || null,
+        },
+      );
+
+      for (const modifier of item.modifiers) {
+        await run(
+          `
+            insert into order_item_modifiers (
+              id, order_item_id, modifier_group_name, modifier_option_name, price_delta
+            )
+            values (
+              @id, @orderItemId, @modifierGroupName, @modifierOptionName, @priceDelta
+            )
+          `,
+          {
+            id: randomUUID(),
+            orderItemId,
+            modifierGroupName: modifier.groupName,
+            modifierOptionName: modifier.optionName,
+            priceDelta: modifier.priceDelta,
+          },
+        );
+      }
+    }
+
+    await run(
+      `
+        insert into payments (
+          id, order_id, payment_method, amount, received_amount,
+          change_amount, status, transaction_ref, created_by
+        )
+        values (
+          @id, @orderId, @paymentMethod, @amount, @receivedAmount,
+          @changeAmount, 'paid', @transactionRef, @createdBy
+        )
+      `,
+      {
+        id: randomUUID(),
+        orderId,
+        paymentMethod: parsed.payment.method,
+        amount: totals.totalAmount,
+        receivedAmount,
+        changeAmount,
+        transactionRef: parsed.payment.transactionRef || null,
+        createdBy: profile.id,
+      },
+    );
+
+    await run("update orders set payment_status = 'paid', updated_at = sysdatetimeoffset() where id = @orderId", {
+      orderId,
+    });
   });
-
-  if (paymentErrorResult) {
-    throw new Error("Payment confirmation failed. Order was not marked as paid.");
-  }
-
-  const { error: paidUpdateError } = await supabase
-    .from("orders")
-    .update({ payment_status: "paid" })
-    .eq("id", orderId);
-
-  if (paidUpdateError) {
-    throw new Error("Payment confirmation failed. Order was not marked as paid.");
-  }
 
   return {
     orderId,
@@ -173,37 +199,88 @@ export async function createOrder(input: unknown) {
   };
 }
 
-export async function getOrderById(orderId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .select(
-      `
-        *,
-        profiles!orders_cashier_id_fkey(full_name),
-        order_items(
-          *,
-          order_item_modifiers(*)
-        ),
-        payments(*)
-      `,
-    )
-    .eq("id", orderId)
-    .single();
+async function getOrderItems(orderIds: string[]) {
+  if (orderIds.length === 0) {
+    return new Map<string, Array<OrderItemRow & { order_item_modifiers: OrderItemModifierRow[] }>>();
+  }
 
-  if (orderError || !order) {
+  const idList = orderIds.map((_, index) => `@id${index}`).join(",");
+  const params = Object.fromEntries(orderIds.map((id, index) => [`id${index}`, id]));
+  const itemRows = await query<OrderItemRow>(`select * from order_items where order_id in (${idList}) order by id`, params);
+  const itemIds = itemRows.map((item) => item.id);
+  const modifierMap = new Map<string, OrderItemModifierRow[]>();
+
+  if (itemIds.length > 0) {
+    const itemIdList = itemIds.map((_, index) => `@itemId${index}`).join(",");
+    const itemParams = Object.fromEntries(itemIds.map((id, index) => [`itemId${index}`, id]));
+    const modifiers = await query<OrderItemModifierRow>(
+      `select * from order_item_modifiers where order_item_id in (${itemIdList}) order by id`,
+      itemParams,
+    );
+
+    modifiers.forEach((modifier) => {
+      modifierMap.set(modifier.order_item_id, [...(modifierMap.get(modifier.order_item_id) ?? []), modifier]);
+    });
+  }
+
+  const itemMap = new Map<string, Array<OrderItemRow & { order_item_modifiers: OrderItemModifierRow[] }>>();
+  itemRows.forEach((item) => {
+    const hydrated = { ...item, order_item_modifiers: modifierMap.get(item.id) ?? [] };
+    itemMap.set(item.order_id, [...(itemMap.get(item.order_id) ?? []), hydrated]);
+  });
+
+  return itemMap;
+}
+
+async function getOrderPayments(orderIds: string[]) {
+  if (orderIds.length === 0) {
+    return new Map<string, PaymentRow[]>();
+  }
+
+  const idList = orderIds.map((_, index) => `@id${index}`).join(",");
+  const params = Object.fromEntries(orderIds.map((id, index) => [`id${index}`, id]));
+  const payments = await query<PaymentRow>(`select * from payments where order_id in (${idList}) order by paid_at`, params);
+  const paymentMap = new Map<string, PaymentRow[]>();
+
+  payments.forEach((payment) => {
+    paymentMap.set(payment.order_id, [...(paymentMap.get(payment.order_id) ?? []), payment]);
+  });
+
+  return paymentMap;
+}
+
+export async function getOrderById(orderId: string) {
+  const order = await queryOne<OrderRow & { cashier_name: string | null }>(
+    `
+      select o.*, p.full_name as cashier_name
+      from orders o
+      left join profiles p on p.id = o.cashier_id
+      where o.id = @orderId
+    `,
+    { orderId },
+  );
+
+  if (!order) {
     throw new Error("Order not found");
   }
 
-  const { data: settings, error: settingsError } = await supabase.from("store_settings").select("*").limit(1).single();
+  const settings = await queryOne<StoreSettings>("select top 1 * from store_settings order by updated_at desc");
 
-  if (settingsError || !settings) {
+  if (!settings) {
     throw new Error("Store settings not found");
   }
 
+  const itemMap = await getOrderItems([orderId]);
+  const paymentMap = await getOrderPayments([orderId]);
+
   return {
-    order: order as unknown as ReceiptOrder,
-    settings: settings as StoreSettings,
+    order: {
+      ...order,
+      profiles: order.cashier_name ? { full_name: order.cashier_name } : null,
+      order_items: itemMap.get(orderId) ?? [],
+      payments: paymentMap.get(orderId) ?? [],
+    } as unknown as ReceiptOrder,
+    settings,
   };
 }
 
@@ -225,71 +302,88 @@ export async function getOrders(filters: OrderFilters = {}) {
     throw new Error("You do not have permission to view orders");
   }
 
-  const supabase = await createSupabaseServerClient();
-  let query = supabase
-    .from("orders")
-    .select("*, profiles!orders_cashier_id_fkey(full_name), payments(payment_method)")
-    .order("created_at", { ascending: false });
+  const conditions: string[] = [];
+  const params: Record<string, unknown> = {};
 
   if (!canViewAllOrders(profile.role)) {
-    query = query.eq("cashier_id", profile.id);
+    conditions.push("o.cashier_id = @cashierId");
+    params.cashierId = profile.id;
   } else if (filters.cashierId) {
-    query = query.eq("cashier_id", filters.cashierId);
+    conditions.push("o.cashier_id = @cashierId");
+    params.cashierId = filters.cashierId;
   }
 
   if (filters.startDate) {
-    query = query.gte("created_at", filters.startDate);
+    conditions.push("o.created_at >= @startDate");
+    params.startDate = filters.startDate;
   }
 
   if (filters.endDate) {
-    query = query.lte("created_at", filters.endDate);
+    conditions.push("o.created_at <= @endDate");
+    params.endDate = filters.endDate;
   }
 
   if (filters.orderStatus) {
-    query = query.eq("status", filters.orderStatus);
+    conditions.push("o.status = @orderStatus");
+    params.orderStatus = filters.orderStatus;
   }
 
   if (filters.paymentStatus) {
-    query = query.eq("payment_status", filters.paymentStatus);
+    conditions.push("o.payment_status = @paymentStatus");
+    params.paymentStatus = filters.paymentStatus;
   }
 
   if (filters.customerId) {
-    query = query.eq("customer_id", filters.customerId);
+    conditions.push("o.customer_id = @customerId");
+    params.customerId = filters.customerId;
   }
 
   if (filters.orderNumber) {
-    query = query.ilike("order_number", `%${filters.orderNumber}%`);
+    conditions.push("o.order_number like @orderNumber");
+    params.orderNumber = `%${filters.orderNumber}%`;
   }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error("Unable to load orders");
-  }
-
-  let orders = data as unknown as OrderListItem[];
 
   if (filters.paymentMethod) {
-    orders = orders.filter((order) => order.payments.some((payment) => payment.payment_method === filters.paymentMethod));
+    conditions.push("exists (select 1 from payments py where py.order_id = o.id and py.payment_method = @paymentMethod)");
+    params.paymentMethod = filters.paymentMethod;
   }
 
-  return orders;
+  const orders = await query<OrderRow & { cashier_name: string | null }>(
+    `
+      select o.*, p.full_name as cashier_name
+      from orders o
+      left join profiles p on p.id = o.cashier_id
+      ${conditions.length > 0 ? `where ${conditions.join(" and ")}` : ""}
+      order by o.created_at desc
+    `,
+    params,
+  );
+  const orderIds = orders.map((order) => order.id);
+  const paymentMap = await getOrderPayments(orderIds);
+
+  return orders.map((order) => ({
+    ...order,
+    profiles: order.cashier_name ? { full_name: order.cashier_name } : null,
+    payments: (paymentMap.get(order.id) ?? []).map((payment) => ({ payment_method: payment.payment_method })),
+  })) as unknown as OrderListItem[];
 }
 
 export async function getActiveBaristaOrders() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*, order_items(*, order_item_modifiers(*))")
-    .eq("payment_status", "paid")
-    .in("status", ["pending", "preparing", "ready"])
-    .order("created_at", { ascending: true });
+  const orders = await query<OrderRow>(
+    `
+      select *
+      from orders
+      where payment_status = 'paid'
+        and status in ('pending', 'preparing', 'ready')
+      order by created_at asc
+    `,
+  );
+  const itemMap = await getOrderItems(orders.map((order) => order.id));
 
-  if (error) {
-    throw new Error("Unable to load barista queue");
-  }
-
-  return data as unknown as BaristaOrder[];
+  return orders.map((order) => ({
+    ...order,
+    order_items: itemMap.get(order.id) ?? [],
+  })) as unknown as BaristaOrder[];
 }
 
 export async function updateOrderStatus(orderId: string, status: Extract<OrderStatus, "preparing" | "ready" | "completed" | "cancelled">) {
@@ -299,28 +393,20 @@ export async function updateOrderStatus(orderId: string, status: Extract<OrderSt
     throw new Error("You do not have permission to update this order");
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: currentOrder, error: loadError } = await supabase
-    .from("orders")
-    .select("status")
-    .eq("id", orderId)
-    .single();
+  const currentOrder = await queryOne<{ status: OrderStatus }>("select status from orders where id = @orderId", { orderId });
 
-  if (loadError || !currentOrder) {
+  if (!currentOrder) {
     throw new Error("Order not found");
   }
 
-  const currentStatus = (currentOrder as { status: OrderStatus }).status;
-
-  if (!canUpdateOrderStatus(currentStatus, status)) {
+  if (!canUpdateOrderStatus(currentOrder.status, status)) {
     throw new Error("Invalid status transition");
   }
 
-  const { error } = await supabase.from("orders").update({ status }).eq("id", orderId);
-
-  if (error) {
-    throw new Error("Unable to update order status");
-  }
+  await query("update orders set status = @status, updated_at = sysdatetimeoffset() where id = @orderId", {
+    orderId,
+    status,
+  });
 }
 
 export async function cancelOrder(orderId: string, reason: string) {
@@ -330,59 +416,49 @@ export async function cancelOrder(orderId: string, reason: string) {
     throw new Error("You do not have permission to cancel this order");
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: currentOrder, error: loadError } = await supabase
-    .from("orders")
-    .select("status,note")
-    .eq("id", orderId)
-    .single();
+  const currentOrder = await queryOne<{ status: OrderStatus; note: string | null }>(
+    "select status, note from orders where id = @orderId",
+    { orderId },
+  );
 
-  if (loadError || !currentOrder) {
+  if (!currentOrder) {
     throw new Error("Order not found");
   }
 
-  const status = (currentOrder as { status: OrderStatus; note: string | null }).status;
-  if (!canUpdateOrderStatus(status, "cancelled")) {
+  if (!canUpdateOrderStatus(currentOrder.status, "cancelled")) {
     throw new Error("Invalid status transition");
   }
 
-  const existingNote = (currentOrder as { status: OrderStatus; note: string | null }).note;
   const cancelNote = `Cancelled: ${reason}`;
-  const { error } = await supabase
-    .from("orders")
-    .update({
-      status: "cancelled",
-      note: existingNote ? `${existingNote}\n${cancelNote}` : cancelNote,
-    })
-    .eq("id", orderId);
-
-  if (error) {
-    throw new Error("Unable to cancel order");
-  }
+  await query(
+    `
+      update orders
+      set status = 'cancelled',
+          note = @note,
+          updated_at = sysdatetimeoffset()
+      where id = @orderId
+    `,
+    {
+      orderId,
+      note: currentOrder.note ? `${currentOrder.note}\n${cancelNote}` : cancelNote,
+    },
+  );
 }
 
-export type ReceiptOrder = Database["public"]["Tables"]["orders"]["Row"] & {
+export type ReceiptOrder = OrderRow & {
   profiles: {
     full_name: string;
   } | null;
-  order_items: Array<
-    Database["public"]["Tables"]["order_items"]["Row"] & {
-      order_item_modifiers: Database["public"]["Tables"]["order_item_modifiers"]["Row"][];
-    }
-  >;
-  payments: Database["public"]["Tables"]["payments"]["Row"][];
+  order_items: Array<OrderItemRow & { order_item_modifiers: OrderItemModifierRow[] }>;
+  payments: PaymentRow[];
 };
 
-export type BaristaOrder = Database["public"]["Tables"]["orders"]["Row"] & {
+export type BaristaOrder = OrderRow & {
   status: ActiveOrderStatus;
-  order_items: Array<
-    Database["public"]["Tables"]["order_items"]["Row"] & {
-      order_item_modifiers: Database["public"]["Tables"]["order_item_modifiers"]["Row"][];
-    }
-  >;
+  order_items: Array<OrderItemRow & { order_item_modifiers: OrderItemModifierRow[] }>;
 };
 
-export type OrderListItem = Database["public"]["Tables"]["orders"]["Row"] & {
+export type OrderListItem = OrderRow & {
   profiles: {
     full_name: string;
   } | null;

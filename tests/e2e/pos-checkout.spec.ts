@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 test.skip(
-  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  "Supabase environment variables and seeded test users are required for this E2E flow.",
+  !process.env.MSSQL_CONNECTION_STRING && (!process.env.MSSQL_SERVER || !process.env.MSSQL_DATABASE),
+  "MSSQL environment variables and seeded test users are required for this E2E flow.",
 );
 
 test("cashier creates latte order and barista completes it", async ({ page, context }) => {

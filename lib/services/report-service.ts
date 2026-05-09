@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { query } from "@/lib/mssql/client";
 import type { PaymentMethod } from "@/types/domain";
 
 type DashboardOrder = {
@@ -72,21 +72,46 @@ function dayRange(date: string) {
 }
 
 export async function getDashboardSummary(date: string): Promise<DashboardSummary> {
-  const supabase = await createSupabaseServerClient();
   const { start, end } = dayRange(date);
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*, profiles!orders_cashier_id_fkey(full_name), payments(payment_method,amount), order_items(product_id,product_name,quantity,total_price)")
-    .eq("payment_status", "paid")
-    .gte("created_at", start)
-    .lt("created_at", end)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error("Unable to load dashboard summary");
-  }
-
-  const orders = data as unknown as DashboardOrder[];
+  const orderRows = await query<
+    Omit<DashboardOrder, "profiles" | "payments" | "order_items"> & {
+      cashier_name: string | null;
+    }
+  >(
+    `
+      select o.*, p.full_name as cashier_name
+      from orders o
+      left join profiles p on p.id = o.cashier_id
+      where o.payment_status = 'paid'
+        and o.created_at >= @start
+        and o.created_at < @end
+      order by o.created_at desc
+    `,
+    { start, end },
+  );
+  const orderIds = orderRows.map((order) => order.id);
+  const idList = orderIds.map((_, index) => `@id${index}`).join(",");
+  const idParams = Object.fromEntries(orderIds.map((id, index) => [`id${index}`, id]));
+  const payments =
+    orderIds.length > 0
+      ? await query<{ order_id: string; payment_method: PaymentMethod; amount: number }>(
+          `select order_id, payment_method, amount from payments where order_id in (${idList})`,
+          idParams,
+        )
+      : [];
+  const orderItems =
+    orderIds.length > 0
+      ? await query<{ order_id: string; product_id: string; product_name: string; quantity: number; total_price: number }>(
+          `select order_id, product_id, product_name, quantity, total_price from order_items where order_id in (${idList})`,
+          idParams,
+        )
+      : [];
+  const orders = orderRows.map((order) => ({
+    ...order,
+    profiles: order.cashier_name ? { full_name: order.cashier_name } : null,
+    payments: payments.filter((payment) => payment.order_id === order.id),
+    order_items: orderItems.filter((item) => item.order_id === order.id),
+  })) as DashboardOrder[];
   const totalSalesToday = orders.reduce((sum, order) => sum + Number(order.total_amount), 0);
   const totalOrdersToday = orders.length;
   const averageOrderValue = calculateAverageOrderValue(totalSalesToday, totalOrdersToday);

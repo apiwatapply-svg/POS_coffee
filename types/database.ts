@@ -9,6 +9,7 @@ export type Database = {
           auth_user_id: string;
           full_name: string;
           email: string;
+          password_hash: string;
           phone: string | null;
           role: "admin" | "manager" | "cashier" | "barista";
           is_active: boolean;
@@ -20,6 +21,7 @@ export type Database = {
           auth_user_id: string;
           full_name: string;
           email: string;
+          password_hash: string;
           phone?: string | null;
           role: "admin" | "manager" | "cashier" | "barista";
           is_active?: boolean;

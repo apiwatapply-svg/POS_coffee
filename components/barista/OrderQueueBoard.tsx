@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { updateOrderStatusAction } from "@/app/actions/orders";
-import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
+import { useLiveOrders } from "@/hooks/use-live-orders";
 import type { BaristaOrder } from "@/lib/services/order-service";
 
 type OrderQueueBoardProps = {
@@ -24,13 +24,13 @@ function nextActions(status: BaristaOrder["status"]) {
 export function OrderQueueBoard({ orders }: OrderQueueBoardProps) {
   const router = useRouter();
   const refresh = useCallback(() => router.refresh(), [router]);
-  const { isConnected } = useRealtimeOrders(refresh);
+  const { isConnected } = useLiveOrders(refresh);
 
   return (
     <section className="space-y-4">
       {!isConnected ? (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Realtime connection lost. Refreshing manually may be required.
+          Live refresh is paused. Manual refresh may be required.
         </p>
       ) : null}
 
@@ -97,4 +97,3 @@ export function OrderQueueBoard({ orders }: OrderQueueBoardProps) {
     </section>
   );
 }
-
