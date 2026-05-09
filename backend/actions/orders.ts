@@ -11,13 +11,16 @@ export type OrderActionState = {
 
 export async function createOrderAction(_: OrderActionState, formData: FormData): Promise<OrderActionState> {
   const payload = String(formData.get("payload") ?? "");
+  let redirectTo: string;
 
   try {
     const result = await createOrder(JSON.parse(payload));
-    redirect(result.redirectTo);
+    redirectTo = result.redirectTo;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Unable to save order" };
   }
+
+  redirect(redirectTo);
 }
 
 export async function updateOrderStatusAction(formData: FormData) {
