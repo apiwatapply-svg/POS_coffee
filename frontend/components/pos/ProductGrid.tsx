@@ -107,26 +107,33 @@ export function ProductGrid({ products }: ProductGridProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 overflow-y-auto pb-2 md:grid-cols-3 xl:grid-cols-4">
+      <div
+        className="grid grid-cols-2 gap-3 overflow-y-auto pb-2 md:grid-cols-3 xl:grid-cols-4"
+        style={{ gridAutoRows: "15rem" }}
+      >
         {filteredProducts.map((product) => (
           <button
-            className="min-h-44 rounded-md border border-stone-200 bg-white p-3 text-left shadow-sm transition hover:border-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex flex-col overflow-hidden rounded-md border border-stone-200 bg-white p-3 text-left shadow-sm transition hover:border-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!product.is_available}
             key={product.id}
             onClick={() => selectProduct(product)}
+            style={{ height: "15rem" }}
             type="button"
           >
-            <div className="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-md bg-emerald-50 text-emerald-800">
+            <div
+              className="mb-3 flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-emerald-50 p-2 text-emerald-800"
+              style={{ height: "6rem" }}
+            >
               {product.image_url ? (
-                <img alt="" className="size-full object-cover" src={product.image_url} />
+                <img alt="" className="max-h-full max-w-full object-contain" src={product.image_url} />
               ) : (
                 <Coffee aria-hidden="true" size={32} />
               )}
             </div>
-            <div className="space-y-1">
-              <p className="font-semibold text-stone-950">{product.name}</p>
+            <div className="flex flex-1 flex-col space-y-1">
+              <p className="min-h-11 overflow-hidden font-semibold leading-snug text-stone-950">{product.name}</p>
               <p className="text-xs text-stone-500">{product.categories?.name ?? "Uncategorized"}</p>
-              <div className="flex items-center justify-between gap-2">
+              <div className="mt-auto flex items-center justify-between gap-2 pt-2">
                 <p className="text-sm font-semibold">THB {Number(product.price).toFixed(2)}</p>
                 {!product.is_available ? (
                   <span className="rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700">Sold out</span>
