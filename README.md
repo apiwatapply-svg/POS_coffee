@@ -4,6 +4,8 @@ A modern point-of-sale web application for coffee shops, built to keep the count
 
 POS Coffee is designed for a small cafe team that needs fast checkout, accurate order status tracking, role-based access, and a practical foundation for production deployment with Microsoft SQL Server.
 
+GitHub: https://github.com/apiwatapply-svg/POS_coffee
+
 ## Highlights
 
 - Fast cashier POS with product browsing, modifiers, cart totals, and checkout validation.
@@ -14,6 +16,25 @@ POS Coffee is designed for a small cafe team that needs fast checkout, accurate 
 - Role-based access for admin, manager, cashier, and barista workflows.
 - Microsoft SQL Server schema, seed data, server-side sessions, and password-based staff authentication.
 - Focused unit and E2E test coverage for core POS behavior.
+
+## Visual Workflow
+
+The portfolio presents this project through real screenshots in this order:
+
+1. Staff login and role redirect for Admin, Manager, Cashier, and Barista users.
+2. Cashier POS screen for product search, modifiers, cart totals, and checkout.
+3. Barista queue for paid orders and preparation status.
+4. Product management for categories, menu items, prices, availability, and modifiers.
+5. Sales dashboard for manager/admin reporting.
+
+Demo accounts:
+
+```text
+admin@example.com / password123
+manager@example.com / password123
+cashier@example.com / password123
+barista@example.com / password123
+```
 
 ## Tech Stack
 
